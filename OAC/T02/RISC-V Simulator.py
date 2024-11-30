@@ -90,7 +90,9 @@ def read_word(address):
 
 # Função para escrever uma palavra na memória
 def write_word(address, value):
-    mem[address:address+4] = value.to_bytes(4, byteorder='little', signed=True)
+    #mem[address:address+4] = value.to_bytes(4, byteorder='little', signed=True)
+    for i in range(4):
+        mem[address + i] = np.uint8((value >> (8 * i)) & 0xFF)
 
 # Fetch: busca a instrução da memória
 def fetch():
@@ -170,7 +172,13 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21
             reg[rd] = reg[rs1] >> shamt
         elif funct3 == 0x5 and funct7 == 0x20:  # SRAI
             reg[rd] = reg[rs1] >> shamt  # Shift aritmético
-        elif funct3 == 0x2:  # LW
+
+    # Load Functions
+    elif opcode == 0x03: 
+        if funct3 == 0x0: # LB
+            address = reg[rs1] + imm12_i
+            reg[rd] = np.int8(mem[address])
+        elif funct3 == 0x2: # LW
             address = reg[rs1] + imm12_i
             reg[rd] = read_word(address)
         
@@ -204,7 +212,8 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21
             write_word(address, reg[rs2])
         elif funct3 == 0x0:  # SB
             address = reg[rs1] + imm12_s
-            mem[address:address+1] = (reg[rs2] & 0xFF).to_bytes(1, byteorder='little')
+            mem[address] = np.uint8(reg[rs2])
+            #mem[address:address+1] = (reg[rs2] & 0xFF).to_bytes(1, byteorder='little')
 
     # Tipo B (Branch)
     elif opcode == 0x63:
