@@ -13,6 +13,7 @@ mem = np.zeros(MEM_SIZE, dtype=np.uint8)
 # Registradores RISC-V
 reg = np.zeros(32, dtype=np.int32)  # Registradores x0-x31
 pc = 0  # Program Counter (PC)
+reg[0] = 0 # Registrador zero sempre vale zero
 
 # Constantes para syscalls - reg a0-a7 = 10-17; registrador a7 = 17
 SYSCALL_PRINT_INT = 1
@@ -46,14 +47,6 @@ def lbu(reg, offset):
     return hex(np.uint32(mem[address]))
 
 
-# Função para ler uma palavra de 32 bits da memória
-def lw(reg, offset):
-    address = reg + offset
-    word = 0
-    for i in range(4):
-        word |= np.uint32(mem[address + i]) << (8 * i)
-    return hex(word)
-
 
 # Função para escrever um byte na memória
 def sb(reg, offset, byte):
@@ -62,10 +55,6 @@ def sb(reg, offset, byte):
 
 
 # Função para escrever uma palavra de 32 bits na memória
-def sw(reg, offset, word):
-    address = reg + offset
-    for i in range(4):
-        mem[address + i] = np.uint8((word >> (8 * i)) & 0xFF)
 
 
 # Execução das instruções conforme o exemplo forneci
@@ -83,7 +72,16 @@ def sw(reg, offset, word):
 #print(lbu(0, 1))
 #print(lbu(0, 2))
 #print(lbu(0, 3))
+#def read_word(address):
+#    word = 0
+#    for i in range(4):
+#        word |= np.uint32(mem[address + i]) << (8 * i)
+#    return word
 
+#def write_word(address, word):
+#    #address = reg + offset
+#    for i in range(4):
+#        mem[address + i] = np.uint8((word >> (8 * i)) & 0xFF)
 
 
 # Função para ler uma palavra da memória
@@ -103,43 +101,87 @@ def fetch():
 
 # Decode: decodificação da instrução
 def decode(instruction):
+    def get_field(value, offset, mask):
+        return (value >> offset) & mask
+
+    def set_field(value, offset, mask, field_value):
+        value &= ~(mask << offset)  # Limpa o campo atual
+        value |= (field_value & mask) << offset  # Insere o novo campo
+        return value
+
+    def get_bit(value, bit_position):
+        return (value >> bit_position) & 1
+
+    def set_bit(value, bit_position, bit_value):
+        if bit_value:
+            return value | (1 << bit_position)
+        else:
+            return value & ~(1 << bit_position)
+
+    # Decodificação básica
     opcode = instruction & 0x7F
-    rd = (instruction >> 7) & 0x1F
-    funct3 = (instruction >> 12) & 0x7
-    rs1 = (instruction >> 15) & 0x1F
     rs2 = (instruction >> 20) & 0x1F
+    rs1 = (instruction >> 15) & 0x1F
+    rd = (instruction >> 7) & 0x1F
+    shamt = (instruction >> 20) & 0x1F
+    funct3 = (instruction >> 12) & 0x7
     funct7 = (instruction >> 25) & 0x7F
 
-    #if opcode == 0x13 or opcode == 0
+    # Imediatos
+    imm12_i = instruction >> 20  # Estende sinal automaticamente no Python
+    tmp = get_field(instruction, 7, 0x1F)
+    imm12_s = set_field(imm12_i, 0, 0x1F, tmp)
+    imm13 = imm12_s
+    imm13 = set_bit(imm13, 11, imm12_s & 1)
+    imm13 &= ~1
+    imm20_u = instruction & (~0xFFF)
 
+    # Imediato de 21 bits (imm21)
+    imm21 = instruction >> 11  # Estende sinal automaticamente no Python
+    tmp = get_field(instruction, 12, 0xFF)  # Campo [19:12]
+    imm21 = set_field(imm21, 12, 0xFF, tmp)
+    tmp = get_bit(instruction, 20)  # Bit 11 em ri(20)
+    imm21 = set_bit(imm21, 11, tmp)
+    tmp = get_field(instruction, 21, 0x3FF)  # Campo [10:1]
+    imm21 = set_field(imm21, 1, 0x3FF, tmp)
+    imm21 &= ~1  # Zera o bit 0
 
-    imm_i = (instruction >> 12) & 0xFFFFF
-    return opcode, rd, funct3, rs1, rs2, funct7, imm_i
+    # Retorna todos os campos necessários para execução da instrução
+    return opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21, imm20_u, shamt
 
 # Execute: executa a instrução
-def execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i):
+def execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21, imm20_u, shamt):
     global pc
+    reg[0] = 0  # Registrador zero sempre vale zero
 
-
-    if opcode == 0x13:  # Tipo I (ADDI, ANDI, ORI, etc.)
+    # Tipo I (ADDI, ANDI, ORI, etc.)
+    if opcode == 0x13:
         if funct3 == 0x0:  # ADDI
-            reg[rd] = reg[rs1] + imm_i
+            reg[rd] = reg[rs1] + imm12_i
         elif funct3 == 0x7:  # ANDI
-            reg[rd] = reg[rs1] & imm_i
+            reg[rd] = reg[rs1] & imm12_i
         elif funct3 == 0x6:  # ORI
-            reg[rd] = reg[rs1] | imm_i
+            reg[rd] = reg[rs1] | imm12_i
         elif funct3 == 0x4:  # XORI
-            reg[rd] = reg[rs1] ^ imm_i
+            reg[rd] = reg[rs1] ^ imm12_i
+        elif funct3 == 0x1 and funct7 == 0x00:  # SLLI
+            reg[rd] = reg[rs1] << shamt
+        elif funct3 == 0x5 and funct7 == 0x00:  # SRLI
+            reg[rd] = reg[rs1] >> shamt
+        elif funct3 == 0x5 and funct7 == 0x20:  # SRAI
+            reg[rd] = reg[rs1] >> shamt  # Shift aritmético
         elif funct3 == 0x2:  # LW
-            address = reg[rs1] + imm_i
+            address = reg[rs1] + imm12_i
             reg[rd] = read_word(address)
-        elif funct3 == 0x0:  # JALR
-            temp = pc
-            pc = (reg[rs1] + imm_i) & ~1
-            reg[rd] = temp
+        
+        
+    elif opcode == 0x67:  # JALR
+        temp = pc - 4
+        pc = int((reg[rs1] + imm12_i) & ~1)
+        reg[rd] = temp
 
-
-    elif opcode == 0x33:  # Tipo R
+    # Tipo R (ADD, SUB, etc.)
+    elif opcode == 0x33:
         if funct3 == 0x0 and funct7 == 0x00:  # ADD
             reg[rd] = reg[rs1] + reg[rs2]
         elif funct3 == 0x0 and funct7 == 0x20:  # SUB
@@ -155,72 +197,86 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i):
         elif funct3 == 0x3 and funct7 == 0x00:  # SLTU
             reg[rd] = 1 if (reg[rs1] & 0xFFFFFFFF) < (reg[rs2] & 0xFFFFFFFF) else 0
 
-
-    elif opcode == 0x23:  # Tipo S
+    # Tipo S (SW, SB)
+    elif opcode == 0x23:
         if funct3 == 0x2:  # SW
-            address = reg[rs1] + imm_i
+            address = reg[rs1] + imm12_s
             write_word(address, reg[rs2])
         elif funct3 == 0x0:  # SB
-            address = reg[rs1] + imm_i
+            address = reg[rs1] + imm12_s
             mem[address:address+1] = (reg[rs2] & 0xFF).to_bytes(1, byteorder='little')
 
+    # Tipo B (Branch)
+    elif opcode == 0x63:
+        temp = pc - 4
 
-    elif opcode == 0x63:  # Tipo B
-        if funct3 == 0x0:  # BEQ
-            if reg[rs1] == reg[rs2]:
-                pc += imm_i
-        elif funct3 == 0x1:  # BNE
-            if reg[rs1] != reg[rs2]:
-                pc += imm_i
-        elif funct3 == 0x4:  # BLT
-            if reg[rs1] < reg[rs2]:
-                pc += imm_i
-        elif funct3 == 0x5:  # BGE
-            if reg[rs1] >= reg[rs2]:
-                pc += imm_i
-        elif funct3 == 0x6:  # BLTU
-            if (reg[rs1] & 0xFFFFFFFF) < (reg[rs2] & 0xFFFFFFFF):
-                pc += imm_i
-        elif funct3 == 0x7:  # BGEU
-            if (reg[rs1] & 0xFFFFFFFF) >= (reg[rs2] & 0xFFFFFFFF):
-                pc += imm_i
+        if funct3 == 0x0 and (reg[rs1] == reg[rs2]):  # BEQ
+            pc = temp + imm13
+        elif funct3 == 0x1 and (reg[rs1] != reg[rs2]):  # BNE
+            pc = temp + imm13
+        elif funct3 == 0x4 and (reg[rs1] < reg[rs2]):  # BLT
+            pc = temp + imm13
+        elif funct3 == 0x5 and (reg[rs1] >= reg[rs2]):  # BGE
+            pc = temp + imm13
+        elif funct3 == 0x6 and ((reg[rs1] & 0xFFFFFFFF) < (reg[rs2] & 0xFFFFFFFF)):  # BLTU
+            pc = temp + imm13
+        elif funct3 == 0x7 and ((reg[rs1] & 0xFFFFFFFF) >= (reg[rs2] & 0xFFFFFFFF)):  # BGEU
+            pc = temp + imm13
 
-
+    # Tipo U (AUIPC, LUI)
     elif opcode == 0x17:  # AUIPC
-        reg[rd] = pc + (imm_i << 12)
-
+        reg[rd] = (pc-4) + imm20_u
     elif opcode == 0x37:  # LUI
-        reg[rd] = imm_i << 12
+        reg[rd] = imm20_u
 
+    # Tipo J (JAL)
     elif opcode == 0x6F:  # JAL
+        pc -= 4
         reg[rd] = pc + 4
-        pc += imm_i
+        pc += imm21
 
-    elif opcode == 0x73:  # ECALL - imprimir inteiro, string e encerrar
-
-        if reg[10] == SYSCALL_PRINT_INT:
-            print(reg[11])
-
-        elif reg[10] == SYSCALL_PRINT_STR:
-            print(f"Endereço da string em a0: 0x{reg[11]:04X}")
-            addr = 0x2000
-            #addr = reg[11]  # Endereço da string em a0
+    # ECALL - syscall
+    elif opcode == 0x73:
+        #print(reg[17])
+        if reg[17] == SYSCALL_PRINT_INT:
+            print(reg[10])
+        elif reg[17] == SYSCALL_PRINT_STR:
+            #print(f"Endereço da string em a0: 0x{reg[10]:08X}")
+            addr = reg[10]
             string = ""
             while True:
-                byte = mem[addr]  # Lê um byte da memória
-                print(byte)
-                if byte == 0:  # Termina ao encontrar o caractere nulo
+                byte = mem[addr]
+                if byte == 0:
                     break
-                string += chr(byte)  # Converte o byte em caractere
-                addr += 1  # Avança para o próximo byte
-            print(string)  
-
-        elif reg[10] == SYSCALL_EXIT:
+                string += chr(byte)
+                addr += 1
+            print(string)
+        elif reg[17] == SYSCALL_EXIT:
+            global encerrar 
             encerrar = True
+
 def step():
+        global pc
+
         instruction = fetch()
-        opcode, rd, funct3, rs1, rs2, funct7, imm_i = decode(instruction)
-        execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i)
+
+        (
+            opcode,
+            rd,
+            funct3,
+            rs1,
+            rs2,
+            funct7,
+            imm12_i,
+            imm12_s,
+            imm13,
+            imm21,
+            imm20_u,
+            shamt,
+        ) = decode(instruction)
+
+        execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21, imm20_u, shamt)
+
     
 
 # Run: executa o programa até o fim
@@ -228,7 +284,7 @@ def run():
     global encerrar
     while encerrar == False:
         step()
-        print(pc)
+        #print(pc)
         if pc > 8192:
             encerrar = True
     exit()
