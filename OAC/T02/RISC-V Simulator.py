@@ -218,9 +218,9 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21
             pc = temp + imm13
         elif funct3 == 0x5 and (reg[rs1] >= reg[rs2]):  # BGE
             pc = temp + imm13
-        elif funct3 == 0x6 and ((reg[rs1] & 0xFFFFFFFF) < (reg[rs2] & 0xFFFFFFFF)):  # BLTU
+        elif funct3 == 0x6 and (np.uint32(reg[rs1]) < np.uint32(reg[rs2])):  # BLTU
             pc = temp + imm13
-        elif funct3 == 0x7 and ((reg[rs1] & 0xFFFFFFFF) >= (reg[rs2] & 0xFFFFFFFF)):  # BGEU
+        elif funct3 == 0x7 and (np.uint32(reg[rs1]) >= np.uint32(reg[rs2])):  # BGEU
             pc = temp + imm13
 
     # Tipo U (AUIPC, LUI)
