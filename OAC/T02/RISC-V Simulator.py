@@ -18,6 +18,7 @@ pc = 0  # Program Counter (PC)
 SYSCALL_PRINT_INT = 1
 SYSCALL_PRINT_STR = 4
 SYSCALL_EXIT = 10
+encerrar = False
 
 # Carregar memória a partir de arquivos binários
 def load_mem(code_file, data_file):
@@ -30,6 +31,60 @@ def load_mem(code_file, data_file):
     with open(data_file, 'rb') as f:
         data = f.read()
     mem[0x2000:0x2000 + len(data)] = np.frombuffer(data, dtype=np.uint8)
+
+
+# Função para ler um byte da memória e estender o sinal para 32 bits
+def lb(reg, offset):
+    address = reg + offset
+    byte = np.int8(mem[address])
+    return hex(np.int32(byte) & 0xffffffff)
+
+
+# Função para ler um byte da memória sem sinal
+def lbu(reg, offset):
+    address = reg + offset
+    return hex(np.uint32(mem[address]))
+
+
+# Função para ler uma palavra de 32 bits da memória
+def lw(reg, offset):
+    address = reg + offset
+    word = 0
+    for i in range(4):
+        word |= np.uint32(mem[address + i]) << (8 * i)
+    return hex(word)
+
+
+# Função para escrever um byte na memória
+def sb(reg, offset, byte):
+    address = reg + offset
+    mem[address] = np.uint8(byte)
+
+
+# Função para escrever uma palavra de 32 bits na memória
+def sw(reg, offset, word):
+    address = reg + offset
+    for i in range(4):
+        mem[address + i] = np.uint8((word >> (8 * i)) & 0xFF)
+
+
+# Execução das instruções conforme o exemplo forneci
+#print("Dados escritos na memória:")
+#for i in range(8):
+#    print(hex(mem[i]))
+
+#print("\nDados lidos da memória:")
+#print(lw(0, 0))
+#print(lb(0, 0))  # Extensão de sinal para 32 bits
+#print(lb(0, 1))  # Extensão de sinal para 32 bits
+#print(lb(0, 2))  # Extensão de sinal para 32 bits
+#print(lb(0, 3))  # Extensão de sinal para 32 bits
+#print(lbu(0, 0))
+#print(lbu(0, 1))
+#print(lbu(0, 2))
+#print(lbu(0, 3))
+
+
 
 # Função para ler uma palavra da memória
 def read_word(address):
@@ -54,12 +109,18 @@ def decode(instruction):
     rs1 = (instruction >> 15) & 0x1F
     rs2 = (instruction >> 20) & 0x1F
     funct7 = (instruction >> 25) & 0x7F
-    imm_i = (instruction >> 20) & 0xFFF
+
+    #if opcode == 0x13 or opcode == 0
+
+
+    imm_i = (instruction >> 12) & 0xFFFFF
     return opcode, rd, funct3, rs1, rs2, funct7, imm_i
 
 # Execute: executa a instrução
 def execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i):
     global pc
+
+
     if opcode == 0x13:  # Tipo I (ADDI, ANDI, ORI, etc.)
         if funct3 == 0x0:  # ADDI
             reg[rd] = reg[rs1] + imm_i
@@ -76,6 +137,8 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i):
             temp = pc
             pc = (reg[rs1] + imm_i) & ~1
             reg[rd] = temp
+
+
     elif opcode == 0x33:  # Tipo R
         if funct3 == 0x0 and funct7 == 0x00:  # ADD
             reg[rd] = reg[rs1] + reg[rs2]
@@ -91,6 +154,8 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i):
             reg[rd] = 1 if reg[rs1] < reg[rs2] else 0
         elif funct3 == 0x3 and funct7 == 0x00:  # SLTU
             reg[rd] = 1 if (reg[rs1] & 0xFFFFFFFF) < (reg[rs2] & 0xFFFFFFFF) else 0
+
+
     elif opcode == 0x23:  # Tipo S
         if funct3 == 0x2:  # SW
             address = reg[rs1] + imm_i
@@ -98,6 +163,8 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i):
         elif funct3 == 0x0:  # SB
             address = reg[rs1] + imm_i
             mem[address:address+1] = (reg[rs2] & 0xFF).to_bytes(1, byteorder='little')
+
+
     elif opcode == 0x63:  # Tipo B
         if funct3 == 0x0:  # BEQ
             if reg[rs1] == reg[rs2]:
@@ -117,36 +184,54 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i):
         elif funct3 == 0x7:  # BGEU
             if (reg[rs1] & 0xFFFFFFFF) >= (reg[rs2] & 0xFFFFFFFF):
                 pc += imm_i
+
+
     elif opcode == 0x17:  # AUIPC
         reg[rd] = pc + (imm_i << 12)
+
     elif opcode == 0x37:  # LUI
         reg[rd] = imm_i << 12
+
     elif opcode == 0x6F:  # JAL
         reg[rd] = pc + 4
         pc += imm_i
+
     elif opcode == 0x73:  # ECALL - imprimir inteiro, string e encerrar
+
         if reg[10] == SYSCALL_PRINT_INT:
             print(reg[11])
-        elif reg[10] == SYSCALL_PRINT_STR:
-            addr = reg[11]
-            string = ""
-            while mem[addr] != 0:
-                string += chr(mem[addr])
-                addr += 1
-            print(string)
-        elif reg[10] == SYSCALL_EXIT:
-            exit()
-# def step():
-    # a desenvolver
-    
 
-# Run: executa o programa até o fim
-# TODO: limitar a 2k words
-def run():
-    while True:
+        elif reg[10] == SYSCALL_PRINT_STR:
+            print(f"Endereço da string em a0: 0x{reg[11]:04X}")
+            addr = 0x2000
+            #addr = reg[11]  # Endereço da string em a0
+            string = ""
+            while True:
+                byte = mem[addr]  # Lê um byte da memória
+                print(byte)
+                if byte == 0:  # Termina ao encontrar o caractere nulo
+                    break
+                string += chr(byte)  # Converte o byte em caractere
+                addr += 1  # Avança para o próximo byte
+            print(string)  
+
+        elif reg[10] == SYSCALL_EXIT:
+            encerrar = True
+def step():
         instruction = fetch()
         opcode, rd, funct3, rs1, rs2, funct7, imm_i = decode(instruction)
         execute(opcode, rd, funct3, rs1, rs2, funct7, imm_i)
+    
+
+# Run: executa o programa até o fim
+def run():
+    global encerrar
+    while encerrar == False:
+        step()
+        print(pc)
+        if pc > 8192:
+            encerrar = True
+    exit()
 
 # Exemplo de uso
 # Carregar os binários gerados pelo RARS
