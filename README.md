@@ -1,2 +1,2 @@
 # GitUnB
- All college files.
+Hello, World!
