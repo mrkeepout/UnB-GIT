@@ -1,0 +1,1 @@
+- Caso deseje, é só copiar os arquivos das pastas de testes e substituir na pasta origem, para novos testes.
