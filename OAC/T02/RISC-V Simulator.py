@@ -34,56 +34,6 @@ def load_mem(code_file, data_file):
     mem[0x2000:0x2000 + len(data)] = np.frombuffer(data, dtype=np.uint8)
 
 
-# Função para ler um byte da memória e estender o sinal para 32 bits
-def lb(reg, offset):
-    address = reg + offset
-    byte = np.int8(mem[address])
-    return hex(np.int32(byte) & 0xffffffff)
-
-
-# Função para ler um byte da memória sem sinal
-def lbu(reg, offset):
-    address = reg + offset
-    return hex(np.uint32(mem[address]))
-
-
-
-# Função para escrever um byte na memória
-def sb(reg, offset, byte):
-    address = reg + offset
-    mem[address] = np.uint8(byte)
-
-
-# Função para escrever uma palavra de 32 bits na memória
-
-
-# Execução das instruções conforme o exemplo forneci
-#print("Dados escritos na memória:")
-#for i in range(8):
-#    print(hex(mem[i]))
-
-#print("\nDados lidos da memória:")
-#print(lw(0, 0))
-#print(lb(0, 0))  # Extensão de sinal para 32 bits
-#print(lb(0, 1))  # Extensão de sinal para 32 bits
-#print(lb(0, 2))  # Extensão de sinal para 32 bits
-#print(lb(0, 3))  # Extensão de sinal para 32 bits
-#print(lbu(0, 0))
-#print(lbu(0, 1))
-#print(lbu(0, 2))
-#print(lbu(0, 3))
-#def read_word(address):
-#    word = 0
-#    for i in range(4):
-#        word |= np.uint32(mem[address + i]) << (8 * i)
-#    return word
-
-#def write_word(address, word):
-#    #address = reg + offset
-#    for i in range(4):
-#        mem[address + i] = np.uint8((word >> (8 * i)) & 0xFF)
-
-
 # Função para ler uma palavra da memória
 def read_word(address):
     return int.from_bytes(mem[address:address+4], byteorder='little', signed=True)
@@ -169,7 +119,7 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21
         elif funct3 == 0x1 and funct7 == 0x00:  # SLLI
             reg[rd] = reg[rs1] << shamt
         elif funct3 == 0x5 and funct7 == 0x00:  # SRLI
-            reg[rd] = reg[rs1] >> shamt
+            reg[rd] = np.uint32(reg[rs1]) >> shamt
         elif funct3 == 0x5 and funct7 == 0x20:  # SRAI
             reg[rd] = reg[rs1] >> shamt  # Shift aritmético
 
@@ -181,8 +131,11 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21
         elif funct3 == 0x2: # LW
             address = reg[rs1] + imm12_i
             reg[rd] = read_word(address)
+        elif funct3 == 0x4: # LBU
+            address = reg[rs1] + imm12_i
+            reg[rd] = np.uint8(mem[address])
         
-        
+    # Jump Functions
     elif opcode == 0x67:  # JALR
         temp = pc - 4
         pc = int((reg[rs1] + imm12_i) & ~1)
@@ -213,7 +166,6 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21
         elif funct3 == 0x0:  # SB
             address = reg[rs1] + imm12_s
             mem[address] = np.uint8(reg[rs2])
-            #mem[address:address+1] = (reg[rs2] & 0xFF).to_bytes(1, byteorder='little')
 
     # Tipo B (Branch)
     elif opcode == 0x63:
@@ -248,18 +200,18 @@ def execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21
     elif opcode == 0x73:
         #print(reg[17])
         if reg[17] == SYSCALL_PRINT_INT:
-            print(reg[10])
+            num = str(reg[10])
+            print(f" {num}", end="")
         elif reg[17] == SYSCALL_PRINT_STR:
-            #print(f"Endereço da string em a0: 0x{reg[10]:08X}")
             addr = reg[10]
             string = ""
             while True:
                 byte = mem[addr]
-                if byte == 0:
+                if byte == 0: # Fim da string
                     break
                 string += chr(byte)
                 addr += 1
-            print(string)
+            print(string, end="")
         elif reg[17] == SYSCALL_EXIT:
             global encerrar 
             encerrar = True

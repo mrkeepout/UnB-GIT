@@ -9,15 +9,15 @@ l_fail:	.asciz	" FAIL"
 
 .text
 
-teste1:
-	li t1, -2	# Testa ADD
-	li t2, 3
-	add t3, t1, t2
-	li a1, 1
-	li t6, 1	
-	beq t3, t6, t1_ok
-	jal FAIL
-t1_ok:
+teste22:		# Testa SRL
+	li t1, -1
+	srli t2, t1, 24
+	li a1, 22
+	li t6, 255
+	beq  t2, t6, t22_ok
+	jal FAIL 
+	j fim
+t22_ok:
 	jal OK
 	
 fim:
