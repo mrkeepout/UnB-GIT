@@ -2,7 +2,7 @@
 # Gabriel Lucas França do Nascimento
 # 190107111
 # OAC - 2024/2
-
+# Github: https://github.com/mrkeepout/UnB-GIT/tree/40e37c4c889ba180328d1cfeca2ba4cba94f7f5c/OAC/T02
 
 import numpy as np
 
