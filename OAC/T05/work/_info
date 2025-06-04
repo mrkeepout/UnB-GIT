@@ -1,0 +1,79 @@
+m255
+K3
+13
+cModel Technology
+dC:\altera\13.1\modelsim_ase\win32aloem
+Eula_tb
+Z0 w1737333336
+Z1 DPx4 ieee 11 numeric_std 0 22 O3PF8EB`?j9=z7KT`fn941
+Z2 DPx3 std 6 textio 0 22 5>J:;AW>W0[[dW0I6EN1Q0
+Z3 DPx4 ieee 14 std_logic_1164 0 22 5=aWaoGZSMWIcH0i^f`XF1
+Z4 dC:\Users\mrkeepout\OneDrive - Universidade de Brasília\Documentos\Git\OAC\T05
+Z5 8C:/Users/mrkeepout/OneDrive - Universidade de Brasília/Documentos/Git/OAC/T05/ula_tb.vhd
+Z6 FC:/Users/mrkeepout/OneDrive - Universidade de Brasília/Documentos/Git/OAC/T05/ula_tb.vhd
+l0
+L5
+VV_@OEizU0cI@j>f@Sg>JO2
+Z7 OV;C;10.1d;51
+32
+Z8 !s108 1737336191.742000
+Z9 !s90 -reportprogress|300|-work|work|-2002|-explicit|C:/Users/mrkeepout/OneDrive - Universidade de Brasília/Documentos/Git/OAC/T05/ula_tb.vhd|
+Z10 !s107 C:/Users/mrkeepout/OneDrive - Universidade de Brasília/Documentos/Git/OAC/T05/ula_tb.vhd|
+Z11 o-work work -2002 -explicit -O0
+Z12 tExplicit 1
+!s100 TNU@MU]KWD1LHJZFMRQJ;0
+!i10b 1
+Atb_arch
+R1
+R2
+R3
+DEx4 work 6 ula_tb 0 22 V_@OEizU0cI@j>f@Sg>JO2
+l22
+L8
+V<kg<`mFmfcj29Kh6FT`8B1
+!s100 Gm1nVIVhDWgNdfJ:hzlg]1
+R7
+32
+R8
+R9
+R10
+R11
+R12
+!i10b 1
+Eularv
+Z13 w1737334788
+R1
+R2
+R3
+R4
+Z14 8C:/Users/mrkeepout/OneDrive - Universidade de Brasília/Documentos/Git/OAC/T05/ulaRV.vhd
+Z15 FC:/Users/mrkeepout/OneDrive - Universidade de Brasília/Documentos/Git/OAC/T05/ulaRV.vhd
+l0
+L5
+VoK_F[McQchiXgJI9FWMhn2
+!s100 ]o<UWXLN8k;]m3Uhjzl[S0
+R7
+32
+!i10b 1
+Z16 !s108 1737336191.812000
+Z17 !s90 -reportprogress|300|-work|work|-2002|-explicit|C:/Users/mrkeepout/OneDrive - Universidade de Brasília/Documentos/Git/OAC/T05/ulaRV.vhd|
+Z18 !s107 C:/Users/mrkeepout/OneDrive - Universidade de Brasília/Documentos/Git/OAC/T05/ulaRV.vhd|
+R11
+R12
+Abehavior
+R1
+R2
+R3
+Z19 DEx4 work 5 ularv 0 22 oK_F[McQchiXgJI9FWMhn2
+l18
+L16
+Z20 V2V3f1ehNQcL5>5A9@cX@43
+Z21 !s100 cF<[cjJk<dJ<hCzH6W2FO2
+R7
+32
+!i10b 1
+R16
+R17
+R18
+R11
+R12

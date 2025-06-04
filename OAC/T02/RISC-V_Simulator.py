@@ -238,7 +238,6 @@ def step():
 
         execute(opcode, rd, funct3, rs1, rs2, funct7, imm12_i, imm12_s, imm13, imm21, imm20_u, shamt)
 
-    
 
 # Run: executa o programa até o fim
 def run():

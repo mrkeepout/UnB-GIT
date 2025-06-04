@@ -1,0 +1,34 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity ula_tb is
+end ula_tb;
+
+architecture tb_arch of ula_tb is
+    signal opcode : std_logic_vector(3 downto 0);
+    signal A, B, Z : std_logic_vector(31 downto 0);
+    signal cond : std_logic;
+
+    component ulaRV
+        port (
+            opcode : in std_logic_vector(3 downto 0);
+            A, B   : in std_logic_vector(31 downto 0);
+            Z      : out std_logic_vector(31 downto 0);
+            cond   : out std_logic
+        );
+    end component;
+
+begin
+    uut: ulaRV port map (opcode => opcode, A => A, B => B, Z => Z, cond => cond);
+
+    stimulus: process
+    begin
+        A <= x"00000001"; B <= x"00000001"; opcode <= "0000"; -- ADD
+        wait for 10 ns;
+        A <= x"00000002"; B <= x"00000001"; opcode <= "0001"; -- SUB
+        wait for 10 ns;
+        -- (Add more test cases for each operation)
+        wait;
+    end process;
+end tb_arch;
